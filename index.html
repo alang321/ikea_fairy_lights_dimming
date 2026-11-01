@@ -149,6 +149,20 @@ function endDrag() {
 bar.addEventListener("pointerup", endDrag);
 bar.addEventListener("pointercancel", endDrag);
 
+// Scroll wheel / trackpad (laptops): about 5 % per mouse-wheel notch, smooth on trackpads.
+let wheelDone = 0;
+addEventListener("wheel", e => {
+  if (e.ctrlKey) return;                                  // leave pinch / Ctrl+wheel zoom alone
+  e.preventDefault();
+  const px = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);   // lines/pages -> pixels
+  level = clamp((on ? level : 0) - px / 2000);
+  on = level > 0;
+  render(true);
+  send({ b: level });
+  clearTimeout(wheelDone);
+  wheelDone = setTimeout(() => send({ b: level, done: 1 }), 250);   // sync other phones once it stops
+}, { passive: false });
+
 btn.addEventListener("click", () => {
   on = !on;
   if (on && level < 0.01) level = 0.5;
