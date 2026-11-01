@@ -85,9 +85,9 @@ function showNumber(n) {
 const mix = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(", ");
 function tint(t) {
   const r = document.documentElement.style;
-  r.setProperty("--lo", mix([255, 132, 40], [255, 214, 166], t));    // bottom of the fill
-  r.setProperty("--hi", mix([255, 176, 100], [255, 248, 238], t));   // top of the fill
-  r.setProperty("--glow", mix([255, 160, 80], [255, 236, 210], t));
+  r.setProperty("--lo", mix([255, 165, 90], [255, 214, 166], t));    // bottom of the fill
+  r.setProperty("--hi", mix([255, 198, 140], [255, 248, 238], t));   // top of the fill
+  r.setProperty("--glow", mix([255, 184, 120], [255, 236, 210], t));
 }
 
 // Rubber band: dragging past either end stretches the bar a little, with diminishing returns.
