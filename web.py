@@ -8,6 +8,9 @@ import os
 
 WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 IDLE_S = 60     # drop a WebSocket after this long without messages (the page sends keepalives)
+REQUEST_S = 10  # drop a connection that doesn't send its request in time (e.g. a browser's pre-opened one)
+PAGE_S = 20     # give up sending the page to a client that stops reading
+MAX_CLIENTS = 6 # open WebSockets; the Pico only has a handful of sockets
 
 
 def _frame(payload, op=1):
@@ -26,6 +29,18 @@ async def _recv(reader):
     return h[0] & 0x0F, data
 
 
+async def _read_request(reader):
+    parts = (await reader.readline()).decode().split()
+    headers = {}
+    for _ in range(40):                                  # cap the number of header lines
+        h = await reader.readline()
+        if h in (b"\r\n", b"\n", b""):
+            break
+        k, _, v = h.decode().partition(":")
+        headers[k.strip().lower()] = v.strip()
+    return (parts[1].split("?")[0] if len(parts) > 1 else "/"), headers
+
+
 class Server:
     def __init__(self, light, page="index.html"):
         self.light = light
@@ -37,22 +52,20 @@ class Server:
 
     async def _handle(self, reader, writer):
         try:
-            parts = (await reader.readline()).decode().split()
-            headers = {}
-            while True:
-                h = await reader.readline()
-                if h in (b"\r\n", b"\n", b""):
-                    break
-                k, _, v = h.decode().partition(":")
-                headers[k.strip().lower()] = v.strip()
-            path = parts[1].split("?")[0] if len(parts) > 1 else "/"
+            path, headers = await asyncio.wait_for(_read_request(reader), REQUEST_S)
             if path == "/ws" and headers.get("upgrade", "").lower() == "websocket":
-                await self._websocket(reader, writer, headers)
+                if len(self.clients) >= MAX_CLIENTS:
+                    writer.write(b"HTTP/1.0 503 Busy\r\nContent-Length: 0\r\n\r\n")
+                    await writer.drain()
+                else:
+                    await self._websocket(reader, writer, headers)
             elif path == "/":
-                await self._send_page(writer)
+                await asyncio.wait_for(self._send_page(writer), PAGE_S)
             else:
                 writer.write(b"HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\n\r\n")
                 await writer.drain()
+        except asyncio.TimeoutError:
+            pass
         except Exception as e:
             print("client error:", repr(e))
         finally:

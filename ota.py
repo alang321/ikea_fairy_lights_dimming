@@ -12,6 +12,7 @@ import os
 import machine
 
 PORT = 8080
+TIMEOUT_S = 60      # a whole request (incl. upload) must finish within this
 _NAME_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
 _token = None
 
@@ -48,10 +49,10 @@ async def _receive(reader, name, n):
             os.remove(tmp)
             return 422, ("rejected, %s: %s\n" % (type(e).__name__, e)).encode()
     try:
-        os.remove(name)
+        os.rename(tmp, name)            # littlefs replaces the old file atomically
     except OSError:
-        pass
-    os.rename(tmp, name)
+        os.remove(name)
+        os.rename(tmp, name)
     return 200, ("saved %s\n" % name).encode()
 
 
@@ -61,11 +62,30 @@ async def _reboot():
 
 
 async def _handle(reader, writer):
+    try:
+        status, body = await asyncio.wait_for(_process(reader), TIMEOUT_S)
+    except asyncio.TimeoutError:
+        status, body = 408, b"timeout\n"
+    try:
+        writer.write(("HTTP/1.0 %d\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n"
+                      % (status, len(body))).encode())
+        writer.write(body)
+        await asyncio.wait_for(writer.drain(), 10)
+    except Exception:
+        pass
+    try:
+        writer.close()
+        await writer.wait_closed()
+    except Exception:
+        pass
+
+
+async def _process(reader):
     status, body = 500, b""
     try:
         parts = (await reader.readline()).decode().split()
         headers = {}
-        while True:
+        for _ in range(40):
             h = await reader.readline()
             if h in (b"\r\n", b"\n", b""):
                 break
@@ -98,12 +118,4 @@ async def _handle(reader, writer):
         status, body = 404 if e.args and e.args[0] == 2 else 500, ("%r\n" % e).encode()
     except Exception as e:
         status, body = 500, ("%r\n" % e).encode()
-    try:
-        writer.write(("HTTP/1.0 %d\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n"
-                      % (status, len(body))).encode())
-        writer.write(body)
-        await writer.drain()
-        writer.close()
-        await writer.wait_closed()
-    except Exception:
-        pass
+    return status, body

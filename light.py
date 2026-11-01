@@ -2,6 +2,7 @@
 import asyncio
 import json
 import math
+import os
 import time
 import bridge
 
@@ -71,8 +72,13 @@ class Light:
     def _save(self):
         self._dirty_at = None
         try:
-            with open(STATE_FILE, "w") as f:
-                json.dump(self.state(), f)
+            with open(STATE_FILE + ".tmp", "w") as f:       # write + rename: a power cut
+                json.dump(self.state(), f)                  # can't leave a half-written file
+            try:
+                os.rename(STATE_FILE + ".tmp", STATE_FILE)
+            except OSError:
+                os.remove(STATE_FILE)
+                os.rename(STATE_FILE + ".tmp", STATE_FILE)
         except OSError as e:
             print("save failed:", e)
 
