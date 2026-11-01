@@ -23,7 +23,8 @@
   body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
     background: radial-gradient(60% 50% at 50% 55%, rgba(var(--glow), .28), transparent 70%);
     opacity: var(--b); transition: opacity .4s; }
-  #pct { position: relative; height: 72px; line-height: 72px; font-size: 60px; font-weight: 200;
+  #pct { --row: 96px; position: relative; height: var(--row); line-height: var(--row); margin: -12px 0;
+    font-size: 60px; font-weight: 200;
     font-variant-numeric: tabular-nums; transition: opacity .3s;
     filter: drop-shadow(0 0 calc(var(--b) * 14px) rgba(var(--glow), calc(var(--b) * .7))); }
   body:not(.ready) #pct { opacity: 0; }
@@ -32,12 +33,15 @@
   #off { position: absolute; left: 50%; top: 0; translate: -50% 0; opacity: 0; transform: translateY(14px); }
   body:not(.on) #num { opacity: 0; transform: translateY(-14px); }
   body:not(.on) #off { opacity: 1; transform: none; }
-  /* odometer: each digit is a 0-9 strip that rolls into place */
-  .col { display: block; height: 72px; width: .56em; overflow: hidden;
+  /* odometer: each digit is a 0-9 strip that rolls into place; the window is taller than a digit
+     and fades out at the top and bottom, so rolling digits fade away instead of being cut off */
+  .col { display: block; height: var(--row); width: .56em; overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 24%, #000 76%, transparent);
+            mask-image: linear-gradient(transparent, #000 24%, #000 76%, transparent);
     transition: width .35s cubic-bezier(.2, .8, .2, 1), opacity .25s; }
   .col.hide { width: 0; opacity: 0; }
   .strip { display: flex; flex-direction: column; transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
-  .strip span { height: 72px; text-align: center; }
+  .strip span { height: var(--row); text-align: center; }
   .unit { margin-left: .04em; }
   #bar { position: relative; flex: 1; width: min(44vw, 170px); max-height: 560px; border-radius: 38px; will-change: transform;
     background: var(--track); overflow: hidden; touch-action: none; cursor: ns-resize;
@@ -49,7 +53,7 @@
   #btn { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--track); color: var(--dim);
     display: grid; place-items: center; touch-action: manipulation; cursor: pointer; transition: background .3s, color .3s, box-shadow .3s; }
   #btn svg { width: 32px; height: 32px; }
-  body.on #btn { background: #ffc98a; color: #3a2207; box-shadow: 0 0 36px rgba(255, 180, 100, .45); }
+  body.on #btn { background: rgb(var(--hi)); color: #3a2207; box-shadow: 0 0 36px rgba(var(--glow), .45); }
   #status { position: fixed; top: max(8px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center;
     font-size: 13px; color: var(--dim); opacity: 0; transition: opacity .3s; }
   body.offline #status { opacity: 1; }
