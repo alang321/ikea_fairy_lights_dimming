@@ -1,5 +1,11 @@
 # IKEA light strip controller (Pico W)
 
+<p align="center">
+  <a href="docs/media/demo.mp4"><img src="docs/media/demo.webp" width="300"
+     alt="Dimming the light strip on the ceiling with the slider on a phone"></a><br>
+  <sub>Dimming the strip from the phone (<a href="docs/media/demo.mp4">full video</a>)</sub>
+</p>
+
 Smoothly dimmable 24 V IKEA LED strip, controlled from your phone over the local network.
 The original controller's microcontroller (U1) was removed; a Raspberry Pi Pico W now drives
 the board's H-bridge directly. Hardware details and measurements are in
@@ -73,6 +79,28 @@ U1's empty pads. The rest of the board stays as it is: the supply input V+/V− 
 reverse-polarity diode D2, the bridge, and the strip outputs L1/L2. Its other parts are unused
 for now: the 78L05 regulator that powered U1, the buttons S1/S2, the light sensor PT1 and the
 indicator LED.
+
+<p align="center">
+  <img src="docs/img/board_annotated.jpg" width="520" alt="Controller board with U1 still on it; marked: U1 (cut off), the pin 5 and pin 8 pads soldered to GP0 and GP1, V- to Pico GND, V+ and the L1/L2 strip outputs">
+  <img src="docs/img/u1_pins.jpg" width="430" alt="Close-up of U1 with pin numbers 1 to 10, the pin 1 dot, pin 5 to GP0 and pin 8 to GP1">
+</p>
+
+*Left: the board before the change, with U1 still on it (bottom right, crossed out). The Pico is
+soldered to the pads of U1's pin 5 (→ GP0) and pin 8 (→ GP1), and its GND to V−. The pad
+silkscreen reads "LF LZ V- V+": LF/LZ are L1/L2. Right: U1 close-up (the board is upside down
+here). Pin 1 is at the dot; pins 1–5 run along one side, 6–10 back along the other.*
+
+**The original firmware on the scope** (outputs L1 = yellow, L2 = cyan, measured before U1 was removed):
+
+<p align="center">
+  <img src="docs/img/scope_original_200hz.jpg" width="470" alt="Scope at 2 ms/div: the two outputs take turns being pulled low, about 5 ms per full cycle">
+  <img src="docs/img/scope_original_dead_time.jpg" width="470" alt="Scope at 10 us/div: one output is released and rises slowly, about 20 us later the other output is pulled low">
+</p>
+
+*Left, 2 ms/div: the outputs take turns being pulled low, 2.5 ms each, so the polarity flips at
+200 Hz. Right, 10 µs/div: at a changeover, the released output (yellow) floats up slowly and the
+other one (cyan) is pulled low about 22 µs later. That gap is the dead time the new firmware
+keeps at ≥ 30 µs. Video: [one of the original effect modes ("pulsing") on the scope](docs/media/scope_original_pulsing.mp4).*
 
 ### The H-bridge: four MOSFETs, two control wires
 
