@@ -22,13 +22,29 @@
   body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
     background: radial-gradient(60% 50% at 50% 55%, rgba(255, 190, 110, .28), transparent 70%);
     opacity: var(--b); transition: opacity .4s; }
-  #pct { font-size: 60px; font-weight: 200; letter-spacing: -1px; font-variant-numeric: tabular-nums; min-height: 72px; }
-  #bar { position: relative; flex: 1; width: min(44vw, 170px); max-height: 560px; border-radius: 38px;
+  #pct { position: relative; height: 72px; line-height: 72px; font-size: 60px; font-weight: 200;
+    font-variant-numeric: tabular-nums; transition: opacity .3s;
+    filter: drop-shadow(0 0 calc(var(--b) * 14px) rgba(255, 190, 110, calc(var(--b) * .7))); }
+  body:not(.ready) #pct { opacity: 0; }
+  #num, #off { transition: opacity .3s, transform .35s cubic-bezier(.2, .8, .2, 1); }
+  #num { display: flex; justify-content: center; }
+  #off { position: absolute; left: 50%; top: 0; translate: -50% 0; opacity: 0; transform: translateY(14px); }
+  body:not(.on) #num { opacity: 0; transform: translateY(-14px); }
+  body:not(.on) #off { opacity: 1; transform: none; }
+  /* odometer: each digit is a 0-9 strip that rolls into place */
+  .col { display: block; height: 72px; width: .56em; overflow: hidden;
+    transition: width .35s cubic-bezier(.2, .8, .2, 1), opacity .25s; }
+  .col.hide { width: 0; opacity: 0; }
+  .strip { display: flex; flex-direction: column; transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+  .strip span { height: 72px; text-align: center; }
+  .unit { margin-left: .04em; }
+  #bar { position: relative; flex: 1; width: min(44vw, 170px); max-height: 560px; border-radius: 38px; will-change: transform;
     background: var(--track); overflow: hidden; touch-action: none; cursor: ns-resize;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
   #fill { position: absolute; inset: 0; border-radius: inherit; clip-path: inset(100% 0 0 0);
     background: linear-gradient(to top, #ffa94d, #ffe2b8); }
   body.anim #fill { transition: clip-path .4s cubic-bezier(.4, 0, .2, 1); }
+  #bar.spring { transition: transform .6s cubic-bezier(.25, 1.7, .5, 1); }   /* overshoots a bit when let go */
   #btn { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--track); color: var(--dim);
     display: grid; place-items: center; touch-action: manipulation; cursor: pointer; transition: background .3s, color .3s, box-shadow .3s; }
   #btn svg { width: 32px; height: 32px; }
@@ -37,26 +53,46 @@
     font-size: 13px; color: var(--dim); opacity: 0; transition: opacity .3s; }
   body.offline #status { opacity: 1; }
   body.offline #bar, body.offline #btn, body.offline #pct { opacity: .35; }
+  @media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important; } }
 </style>
 </head>
 <body class="offline">
   <div id="status">connecting…</div>
-  <div id="pct">–</div>
+  <div id="pct"><span id="num"><span class="col"></span><span class="col"></span><span class="col"></span><span class="unit">%</span></span><span id="off">Off</span></div>
   <div id="bar"><div id="fill"></div></div>
   <button id="btn" aria-label="On/off">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
   </button>
 <script>
 const $ = id => document.getElementById(id);
-const bar = $("bar"), fill = $("fill"), pct = $("pct"), btn = $("btn"), body = document.body;
+const bar = $("bar"), fill = $("fill"), btn = $("btn"), body = document.body;
 let level = 0.5, on = false, ws = null, drag = null, pending = null, raf = 0;
 const clamp = x => Math.min(1, Math.max(0, x));
+const tick = ms => { if (navigator.vibrate) navigator.vibrate(ms); };   // Android only
+
+// Odometer digits: columns are [hundreds, tens, ones], each a 0-9 strip shifted into place.
+const cols = [...document.querySelectorAll(".col")];
+cols.forEach(c => c.innerHTML = `<span class="strip">${[...Array(10).keys()].map(d => `<span>${d}</span>`).join("")}</span>`);
+function showNumber(n) {
+  [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10].forEach((d, i) => {
+    cols[i].firstChild.style.transform = `translateY(${-d * 10}%)`;
+    cols[i].classList.toggle("hide", i < 2 && n < 10 ** (2 - i));   // no leading zeros
+  });
+}
+
+// Rubber band: dragging past either end stretches the bar a little, with diminishing returns.
+function stretch(over) {
+  const r = 1 - 1 / (Math.abs(over) * 4 + 1);
+  bar.style.transformOrigin = over > 0 ? "50% 100%" : "50% 0%";
+  bar.style.transform = r ? `scale(${1 - r * 0.04}, ${1 + r * 0.08})` : "";
+}
 
 function render(animate) {
   body.classList.toggle("anim", !!animate);
   body.classList.toggle("on", on);
+  body.classList.add("ready");
+  if (on) showNumber(Math.max(1, Math.round(level * 100)));
   fill.style.clipPath = `inset(${(1 - (on ? level : 0)) * 100}% 0 0 0)`;
-  pct.textContent = on ? Math.max(1, Math.round(level * 100)) + "%" : "Off";
   document.documentElement.style.setProperty("--b", on ? level : 0);
 }
 
@@ -74,19 +110,26 @@ function flush() {
 // Drag anywhere on the bar; it moves relative to your finger, so touching never makes it jump.
 bar.addEventListener("pointerdown", e => {
   bar.setPointerCapture(e.pointerId);
-  drag = { y: e.clientY, start: on ? level : 0, moved: false };
+  bar.classList.remove("spring");
+  drag = { y: e.clientY, start: on ? level : 0, moved: false, step: Math.round((on ? level : 0) * 10) };
 });
 bar.addEventListener("pointermove", e => {
   if (!drag) return;
   drag.moved = true;
-  level = clamp(drag.start + (drag.y - e.clientY) / bar.clientHeight);
+  const raw = drag.start + (drag.y - e.clientY) / bar.clientHeight;
+  level = clamp(raw);
   on = level > 0;
+  stretch(raw - level);
+  const step = Math.round(level * 10);                 // haptic tick every 10 %, a firmer one at the ends
+  if (step !== drag.step) { tick(level === 0 || level === 1 ? 14 : 4); drag.step = step; }
   render(false);
   send({ b: level });
 });
 function endDrag() {
   if (drag && drag.moved) send({ b: level, done: 1 });
   drag = null;
+  bar.classList.add("spring");
+  stretch(0);
 }
 bar.addEventListener("pointerup", endDrag);
 bar.addEventListener("pointercancel", endDrag);
@@ -96,7 +139,7 @@ btn.addEventListener("click", () => {
   if (on && level < 0.01) level = 0.5;
   render(true);
   if (ws && ws.readyState === 1) ws.send(JSON.stringify({ on }));
-  if (navigator.vibrate) navigator.vibrate(8);
+  tick(8);
 });
 
 function connect() {
