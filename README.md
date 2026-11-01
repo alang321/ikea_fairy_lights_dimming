@@ -70,7 +70,7 @@ Needs [`mpremote`](https://docs.micropython.org/en/latest/reference/mpremote.htm
 and MicroPython for the Pico W (tested with v1.29). Close Thonny first; it holds the USB port.
 
 ```bash
-# fill in config.py first (NETWORKS, COUNTRY, OTA_TOKEN)
+# cp config.example.py config.py, then fill in NETWORKS, COUNTRY, OTA_TOKEN
 mpremote cp bridge.py light.py web.py ota.py index.html config.py main.py : + reset
 ```
 
@@ -107,7 +107,7 @@ program; unplug/replug or press Ctrl-D to start it again.
 | `light.py` | `MAX_LEVEL`: brightness cap (slider 100 % → this) | `0.93` (~85 % power) |
 | `light.py` | `SLIDE_TAU_MS`, `TOGGLE_MS`: smoothing / on-off fade | `40`, `400` |
 | `config.py` | `NETWORKS`: Wi-Fi networks, tried in order | `wlan2`, then `wlan` |
-| `config.py` | `COUNTRY`: `"XX"` only allows Wi-Fi channels 1–11; set e.g. `"DE"` for 1–13 | `"XX"` |
+| `config.py` | `COUNTRY`: Wi-Fi regulatory country (`"XX"` would only allow channels 1–11) | `"CH"` (channels 1–13) |
 | `bridge.py` | timing (`POL_HZ`, `DEAD_US`) | 1 kHz, 30 µs |
 
 ## Safety rules (from the hardware notes)
@@ -125,12 +125,10 @@ program; unplug/replug or press Ctrl-D to start it again.
 - **No login.** Anyone on the Wi-Fi can control the light. Don't expose it to the internet.
 - **IP address:** reserve it in the router (Archer AX10: Advanced → Network → DHCP Server → Address Reservation).
   `lightstrip.local` may not resolve on all devices.
-- **Channels 12/13:** with `COUNTRY = "XX"` the Pico can't join if the router moves to channel 12 or 13.
 - The dimmest few percent of the slider may look uneven (see To do).
 
 ## To do
 
-- [ ] Set `COUNTRY` in `config.py`.
 - [ ] **Dark-end calibration:** add a raw pulse-length test, find the shortest clean pulse (`MIN_ON`) on the scope
   (Math CH1−CH2 reaches full 24 V with a flat top, both polarities glow evenly), then map slider 1 % → `MIN_ON`.
   If still steppy: dither between n and n+1 cycles; pulse skipping only if even dimmer is needed (flicker risk).
