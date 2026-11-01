@@ -5,7 +5,8 @@ The original controller's microcontroller (U1) was removed; a Raspberry Pi Pico 
 the board's H-bridge directly. Hardware details and measurements are in
 [`led-controller-context.md`](led-controller-context.md).
 
-Open **http://192.168.178.38/** on a phone on the same Wi-Fi: one big slider plus an on/off button.
+Open **http://lightstrip.fritz.box/** (or **http://192.168.178.38/**) on a phone on the same Wi-Fi:
+one big slider plus an on/off button.
 
 ## Files (all copied to the Pico)
 
@@ -123,8 +124,9 @@ program; unplug/replug or press Ctrl-D to start it again.
 ## Caveats
 
 - **No login.** Anyone on the Wi-Fi can control the light. Don't expose it to the internet.
-- **IP address:** reserve it in the router (Archer AX10: Advanced → Network → DHCP Server → Address Reservation).
-  `lightstrip.local` may not resolve on all devices.
+- **Address:** the FRITZ!Box always gives the Pico `.38` and resolves `lightstrip.fritz.box` for every
+  device that uses it as DNS (all devices on `wlan`/`wlan2`). `lightstrip.local` (mDNS) works on the
+  laptop but not reliably on Android phones.
 - The dimmest few percent of the slider may look uneven (see To do).
 
 ## To do
