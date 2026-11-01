@@ -41,7 +41,7 @@
     transition: width .35s cubic-bezier(.2, .8, .2, 1), opacity .25s; }
   .col.hide { opacity: 0; }   /* an unused tens digit fades but keeps its place: 1-99 % stay put */
   .col.hide:first-child { width: 0; }   /* the hundreds digit only takes space at 100 % */
-  .strip { display: flex; flex-direction: column; transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+  .strip { display: flex; flex-direction: column; will-change: transform; }   /* moved by rollStep() */
   .strip span { height: var(--row); text-align: center; }
   .unit { margin-left: .04em; }
   #bar { position: relative; flex: 1; width: min(44vw, 170px); max-height: 560px; border-radius: 38px; will-change: transform;
@@ -76,14 +76,33 @@ let level = 0.5, on = false, ws = null, drag = null, pending = null, raf = 0;
 const clamp = x => Math.min(1, Math.max(0, x));
 const tick = ms => { if (navigator.vibrate) navigator.vibrate(ms); };   // Android only
 
-// Odometer digits: columns are [hundreds, tens, ones], each a 0-9 strip shifted into place.
+// Odometer digits: columns are [hundreds, tens, ones]. Each is a strip "0 1 … 9 0" that rolls like a
+// real odometer: positions are unbounded numbers shown modulo 10, and the extra 0 at the end makes
+// 9 -> 0 roll one step forward instead of back through 8, 7, … Each change takes the shortest way.
 const cols = [...document.querySelectorAll(".col")];
-cols.forEach(c => c.innerHTML = `<span class="strip">${[...Array(10).keys()].map(d => `<span>${d}</span>`).join("")}</span>`);
+cols.forEach(c => c.innerHTML = `<span class="strip">${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => `<span>${d}</span>`).join("")}</span>`);
+const roll = cols.map(() => ({ p: 0, t: 0 }));     // p = shown position, t = target (both unbounded)
+const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let rollRaf = 0, rollLast = 0;
 function showNumber(n) {
   [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10].forEach((d, i) => {
-    cols[i].firstChild.style.transform = `translateY(${-d * 10}%)`;
+    roll[i].t += ((d - roll[i].t) % 10 + 15) % 10 - 5;              // nearest position showing d
     cols[i].classList.toggle("hide", i < 2 && n < 10 ** (2 - i));   // no leading zeros
   });
+  if (!rollRaf) rollRaf = requestAnimationFrame(rollStep);
+}
+function rollStep(now) {
+  const dt = rollLast ? Math.min(now - rollLast, 50) : 16;
+  rollLast = now;
+  const k = still ? 1 : 1 - Math.exp(-dt / 80);                      // ~80 ms smoothing
+  let moving = false;
+  roll.forEach((r, i) => {
+    r.p += (r.t - r.p) * k;
+    if (Math.abs(r.t - r.p) < 0.002) r.p = r.t; else moving = true;
+    cols[i].firstChild.style.transform = `translateY(${-(((r.p % 10) + 10) % 10) * 100 / 11}%)`;
+  });
+  rollRaf = moving ? requestAnimationFrame(rollStep) : 0;
+  if (!moving) rollLast = 0;
 }
 
 // Colour follows brightness: deep amber when dim, warm white at the top.
