@@ -100,7 +100,13 @@ here). Pin 1 is at the dot; pins 1–5 run along one side, 6–10 back along the
 *Left, 2 ms/div: the outputs take turns being pulled low, 2.5 ms each, so the polarity flips at
 200 Hz. Right, 10 µs/div: at a changeover, the released output (yellow) floats up slowly and the
 other one (cyan) is pulled low about 22 µs later. That gap is the dead time the new firmware
-keeps at ≥ 30 µs. Video: [one of the original effect modes ("pulsing") on the scope](docs/media/scope_original_pulsing.mp4).*
+keeps at ≥ 30 µs.*
+
+<p align="center">
+  <a href="docs/media/scope_original_pulsing.mp4"><img src="docs/media/scope_original_pulsing.webp" width="480"
+     alt="Scope video of the original firmware's pulsing mode: both outputs keep alternating while the brightness pulses"></a><br>
+  <sub>One of the original firmware's effect modes ("pulsing") on the scope (<a href="docs/media/scope_original_pulsing.mp4">full video</a>)</sub>
+</p>
 
 ### The H-bridge: four MOSFETs, two control wires
 
