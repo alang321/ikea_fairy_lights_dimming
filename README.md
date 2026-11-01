@@ -96,8 +96,8 @@ program; unplug/replug or press Ctrl-D to start it again.
 - `config.NETWORKS` is tried in order: `wlan2` (FRITZ!Box, hidden SSID) first, `wlan` (Archer AX10)
   as fallback. Each attempt restarts the Wi-Fi chip.
 - **Self-check:** every 30 s the Pico opens a TCP connection to the router (port 80). After 3 failures
-  in a row (re-checked every 5 s) it reconnects. This catches the state from
-  [`wifi-connection-issue.md`](wifi-connection-issue.md), where the Pico still counts as connected
+  in a row (re-checked every 5 s) it reconnects. This catches a state seen with the Archer AX10
+  access point, where the Pico still counts as connected
   but unicast frames no longer arrive. Detection plus reconnect takes about a minute.
 - Everything is logged to `net.log` with the time synced from the FRITZ!Box.
 
