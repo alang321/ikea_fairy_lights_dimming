@@ -12,6 +12,7 @@ SLIDE_TAU_MS = 40       # smoothing while dragging: short, only hides Wi-Fi jitt
 TOGGLE_MS = 400         # on/off fade duration
 SAVE_DELAY_MS = 3000    # write to flash only once the setting has settled
 MAX_LEVEL = 0.93        # slider 100% -> 93% (~85% power): keeps strip + Pico under the 0.15 A supply
+MIN_LEVEL = 0.075       # slider 1% -> this: shorter pulses (< ~1.5 us) are too short to light the strip
 
 
 def _clamp(b):
@@ -64,7 +65,7 @@ class Light:
                     out = target
             if out != self._out:
                 self._out = out
-                bridge.set_brightness(out * MAX_LEVEL)
+                bridge.set_brightness(MIN_LEVEL + (MAX_LEVEL - MIN_LEVEL) * out if out > 0 else 0)
             if self._dirty_at is not None and time.ticks_diff(time.ticks_ms(), self._dirty_at) > SAVE_DELAY_MS:
                 self._save()
             await asyncio.sleep_ms(TICK_MS)

@@ -11,7 +11,8 @@
 <link rel="icon" href="data:,">
 <title>Light</title>
 <style>
-  :root { --bg: #0b0b0d; --track: #1b1b20; --fg: #f3efe8; --dim: #77737c; --b: 0; }
+  :root { --bg: #0b0b0d; --track: #1b1b20; --fg: #f3efe8; --dim: #77737c; --b: 0;
+    --lo: 255, 143, 51; --hi: 255, 180, 107; --glow: 255, 190, 110; }   /* set from JS by brightness */
   * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
   html { background: var(--bg); }
   html, body { height: 100%; color: var(--fg); overscroll-behavior: none;
@@ -20,11 +21,11 @@
   body { height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
     padding: max(28px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom)); }
   body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1;
-    background: radial-gradient(60% 50% at 50% 55%, rgba(255, 190, 110, .28), transparent 70%);
+    background: radial-gradient(60% 50% at 50% 55%, rgba(var(--glow), .28), transparent 70%);
     opacity: var(--b); transition: opacity .4s; }
   #pct { position: relative; height: 72px; line-height: 72px; font-size: 60px; font-weight: 200;
     font-variant-numeric: tabular-nums; transition: opacity .3s;
-    filter: drop-shadow(0 0 calc(var(--b) * 14px) rgba(255, 190, 110, calc(var(--b) * .7))); }
+    filter: drop-shadow(0 0 calc(var(--b) * 14px) rgba(var(--glow), calc(var(--b) * .7))); }
   body:not(.ready) #pct { opacity: 0; }
   #num, #off { transition: opacity .3s, transform .35s cubic-bezier(.2, .8, .2, 1); }
   #num { display: flex; justify-content: center; }
@@ -42,7 +43,7 @@
     background: var(--track); overflow: hidden; touch-action: none; cursor: ns-resize;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
   #fill { position: absolute; inset: 0; border-radius: inherit; clip-path: inset(100% 0 0 0);
-    background: linear-gradient(to top, #ffa94d, #ffe2b8); }
+    background: linear-gradient(to top, rgb(var(--lo)), rgb(var(--hi))); }
   body.anim #fill { transition: clip-path .4s cubic-bezier(.4, 0, .2, 1); }
   #bar.spring { transition: transform .6s cubic-bezier(.25, 1.7, .5, 1); }   /* overshoots a bit when let go */
   #btn { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--track); color: var(--dim);
@@ -80,6 +81,15 @@ function showNumber(n) {
   });
 }
 
+// Colour follows brightness: deep amber when dim, warm white at the top.
+const mix = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(", ");
+function tint(t) {
+  const r = document.documentElement.style;
+  r.setProperty("--lo", mix([255, 132, 40], [255, 214, 166], t));    // bottom of the fill
+  r.setProperty("--hi", mix([255, 176, 100], [255, 248, 238], t));   // top of the fill
+  r.setProperty("--glow", mix([255, 160, 80], [255, 236, 210], t));
+}
+
 // Rubber band: dragging past either end stretches the bar a little, with diminishing returns.
 function stretch(over) {
   const r = 1 - 1 / (Math.abs(over) * 4 + 1);
@@ -94,6 +104,7 @@ function render(animate) {
   if (on) showNumber(Math.max(1, Math.round(level * 100)));
   fill.style.clipPath = `inset(${(1 - (on ? level : 0)) * 100}% 0 0 0)`;
   document.documentElement.style.setProperty("--b", on ? level : 0);
+  tint(on ? level ** 1.5 : 0);   // stays amber through most of the range, whitens toward the top
 }
 
 // Send at most once per animation frame (~60/s), and only when the previous message has left
