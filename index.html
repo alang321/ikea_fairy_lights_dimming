@@ -39,7 +39,7 @@
     -webkit-mask-image: linear-gradient(transparent, #000 24%, #000 76%, transparent);
             mask-image: linear-gradient(transparent, #000 24%, #000 76%, transparent);
     transition: width .35s cubic-bezier(.2, .8, .2, 1), opacity .25s; }
-  .col.hide { width: 0; opacity: 0; }
+  .col.hide { opacity: 0; }   /* experiment: unused digits fade out but keep their place, so nothing re-centres */
   .strip { display: flex; flex-direction: column; transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
   .strip span { height: var(--row); text-align: center; }
   .unit { margin-left: .04em; }
