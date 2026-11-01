@@ -74,19 +74,10 @@ indicator LED.
 
 ### The H-bridge: four MOSFETs, two control wires
 
-```
-                       V+ (24 V, after diode D2)
-          ┌───────────────────┴───────────────────┐
-     Q3 P-channel                            Q4 P-channel
-     gate: 2 kΩ to V+, 10 kΩ to L2           gate: 2 kΩ to V+, 10 kΩ to L1
-          │                                       │
-   L1 ────┼──────────────[ LED strip ]────────────┼──── L2
-          │                                       │
-     Q2 N-channel                            Q1 N-channel
-     gate: 1 kΩ from GP1, 10 kΩ to GND       gate: 1 kΩ from GP0, 10 kΩ to GND
-          └───────────────────┬───────────────────┘
-                          GND (V−)
-```
+![H-bridge schematic: Q3/Q4 P-MOSFETs on top with 2k pull-ups and 10k cross-coupling, Q2/Q1 N-MOSFETs at the bottom driven from GP1/GP0 through 1k with 10k pull-downs, LED strip between L1 and L2](docs/hbridge.svg)
+
+*Drawn with [schemdraw](https://schemdraw.readthedocs.io/) from [`docs/hbridge_schematic.py`](docs/hbridge_schematic.py)
+(`pip install schemdraw matplotlib`, then `python3 docs/hbridge_schematic.py`).*
 
 - **Low side (Q1, Q2, N-channel):** each is switched directly by one control wire, through a 1 kΩ
   resistor. A 10 kΩ pull-down keeps it off while nothing drives it, e.g. while the Pico boots.
