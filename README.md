@@ -235,7 +235,8 @@ program; unplug/replug or press Ctrl-D to start it again.
 ## Caveats
 
 - **No login.** Anyone on the Wi-Fi can control the light. Don't expose it to the internet.
-- **mDNS:** `lightstrip.local` doesn't work on every network or phone (Android in particular, and
-  some routers don't pass mDNS between Wi-Fi and LAN). A fixed IP always works.
+- **mDNS:** `lightstrip.local` depends on the access point. It worked through one access point,
+  but stopped working when the Pico joined a different router's Wi-Fi with the same firmware,
+  probably because that router filters mDNS. A fixed IP always works.
 - **Low end:** where exactly the strip starts to glow depends on the hardware. Tune `MIN_LEVEL` so
   slider 1 % just barely lights it.
