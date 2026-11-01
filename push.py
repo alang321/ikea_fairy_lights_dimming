@@ -7,7 +7,8 @@
   python3 push.py --get state.json      print a file from the Pico
   python3 push.py --reboot              restart the Pico
 
-The token comes from OTA_TOKEN in config.py. Set PICO=<ip> to use another address.
+The address and token come from PICO_HOST and OTA_TOKEN in config.py.
+Set PICO=<ip> to use another address.
 """
 import os
 import sys
@@ -16,15 +17,21 @@ import urllib.error
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HOST = os.environ.get("PICO", "192.168.178.38")
 RISKY = {"main.py", "ota.py", "config.py"}   # a mistake here can break OTA itself
 
 
-def token():
+def config():
     cfg = {}
     with open(os.path.join(HERE, "config.py")) as f:
         exec(f.read(), cfg)
-    return cfg["OTA_TOKEN"]
+    return cfg
+
+
+def token():
+    return config()["OTA_TOKEN"]
+
+
+HOST = os.environ.get("PICO") or config().get("PICO_HOST", "lightstrip.local")
 
 
 def call(method, path, data=None, timeout=10):

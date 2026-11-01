@@ -5,8 +5,10 @@ The original controller's microcontroller (U1) was removed; a Raspberry Pi Pico 
 the board's H-bridge directly. Hardware details and measurements are in
 [`led-controller-context.md`](led-controller-context.md).
 
-Open **http://lightstrip.fritz.box/** (or **http://192.168.178.38/**) on a phone on the same Wi-Fi:
-one big slider plus an on/off button.
+Open **http://&lt;the Pico's IP&gt;/** on a phone on the same Wi-Fi: one big slider plus an on/off
+button. The IP is printed over USB at boot and written to `net.log`. Give the Pico a fixed IP in
+your router; many routers also make it reachable by name (`lightstrip.local` via mDNS, or the
+router's own DNS name for the hostname `lightstrip`).
 
 ## Files (all copied to the Pico)
 
@@ -178,7 +180,7 @@ Needs [`mpremote`](https://docs.micropython.org/en/latest/reference/mpremote.htm
 and MicroPython for the Pico W (tested with v1.29). Close Thonny first; it holds the USB port.
 
 ```bash
-# cp config.example.py config.py, then fill in NETWORKS, COUNTRY, OTA_TOKEN
+# cp config.example.py config.py, then fill in NETWORKS, COUNTRY, PICO_HOST, OTA_TOKEN
 mpremote cp bridge.py light.py web.py ota.py index.html config.py main.py : + reset
 ```
 
@@ -200,13 +202,13 @@ program; unplug/replug or press Ctrl-D to start it again.
 
 ### Wi-Fi robustness
 
-- `config.NETWORKS` is tried in order: `wlan2` (FRITZ!Box, hidden SSID) first, `wlan` (Archer AX10)
-  as fallback. Each attempt restarts the Wi-Fi chip.
+- `config.NETWORKS` is tried in order, so a second network can act as fallback. Hidden SSIDs work.
+  Each attempt restarts the Wi-Fi chip.
 - **Self-check:** every 30 s the Pico opens a TCP connection to the router (port 80). After 3 failures
-  in a row (re-checked every 5 s) it reconnects. This catches a state seen with the Archer AX10
-  access point, where the Pico still counts as connected
-  but unicast frames no longer arrive. Detection plus reconnect takes about a minute.
-- Everything is logged to `net.log` with the time synced from the FRITZ!Box.
+  in a row (re-checked every 5 s) it reconnects. This catches a state seen with some access points,
+  where the Pico still counts as connected but unicast frames no longer reach it (broadcasts still
+  do). Detection plus reconnect takes about a minute.
+- Everything is logged to `net.log`, with the clock synced over NTP (router first, then `pool.ntp.org`).
 
 ## Settings worth knowing
 
@@ -214,8 +216,10 @@ program; unplug/replug or press Ctrl-D to start it again.
 |---|---|---|
 | `light.py` | `MAX_LEVEL`: brightness cap (slider 100 % → this) | `0.93` (~85 % power) |
 | `light.py` | `SLIDE_TAU_MS`, `TOGGLE_MS`: smoothing / on-off fade | `40`, `400` |
-| `config.py` | `NETWORKS`: Wi-Fi networks, tried in order | `wlan2`, then `wlan` |
-| `config.py` | `COUNTRY`: Wi-Fi regulatory country (`"XX"` would only allow channels 1–11) | `"CH"` (channels 1–13) |
+| `light.py` | `MIN_LEVEL`: slider 1 % → this (shorter pulses don't light the strip) | `0.075` (~2 µs pulse) |
+| `config.py` | `NETWORKS`: Wi-Fi networks, tried in order | — |
+| `config.py` | `COUNTRY`: Wi-Fi regulatory country; `"XX"` only allows channels 1–11 | `"XX"` |
+| `config.py` | `PICO_HOST`: the Pico's address, used by `push.py` on the laptop | — |
 | `bridge.py` | timing (`POL_HZ`, `DEAD_US`) | 1 kHz, 30 µs |
 
 ## Safety rules (from the hardware notes)
@@ -231,15 +235,7 @@ program; unplug/replug or press Ctrl-D to start it again.
 ## Caveats
 
 - **No login.** Anyone on the Wi-Fi can control the light. Don't expose it to the internet.
-- **Address:** the FRITZ!Box always gives the Pico `.38` and resolves `lightstrip.fritz.box` for every
-  device that uses it as DNS (all devices on `wlan`/`wlan2`). `lightstrip.local` (mDNS) works on the
-  laptop but not reliably on Android phones.
-- The dimmest few percent of the slider may look uneven (see To do).
-
-## To do
-
-- [ ] **Dark-end calibration:** add a raw pulse-length test, find the shortest clean pulse (`MIN_ON`) on the scope
-  (Math CH1−CH2 reaches full 24 V with a flat top, both polarities glow evenly), then map slider 1 % → `MIN_ON`.
-  If still steppy: dither between n and n+1 cycles; pulse skipping only if even dimmer is needed (flicker risk).
-- [ ] Delete the old `test.py` from the Pico (contains credentials for another network).
-- [ ] Optional: reuse buttons S1/S2 and the PT1 sensor (check for 5 V pull-ups first).
+- **mDNS:** `lightstrip.local` doesn't work on every network or phone (Android in particular, and
+  some routers don't pass mDNS between Wi-Fi and LAN). A fixed IP always works.
+- **Low end:** where exactly the strip starts to glow depends on the hardware. Tune `MIN_LEVEL` so
+  slider 1 % just barely lights it.

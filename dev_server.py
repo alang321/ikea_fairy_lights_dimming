@@ -29,7 +29,7 @@ class FakeLight:
 def lan_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("192.168.178.1", 80))
+        s.connect(("10.255.255.255", 1))     # UDP "connect" sends nothing; it just picks the LAN interface
         return s.getsockname()[0]
     except OSError:
         return "127.0.0.1"

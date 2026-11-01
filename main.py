@@ -70,7 +70,7 @@ async def reachable(host, port=80, timeout_ms=5000):
 
 def sync_clock(gateway):
     import ntptime
-    for host in (gateway, "pool.ntp.org"):     # the FRITZ!Box is a time server
+    for host in (gateway, "pool.ntp.org"):     # many home routers are a time server too
         try:
             ntptime.host = host
             ntptime.settime()
