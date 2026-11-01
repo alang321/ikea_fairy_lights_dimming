@@ -65,7 +65,7 @@ indicator LED.
   resistor. A 10 kΩ pull-down keeps it off while nothing drives it, e.g. while the Pico boots.
 - **High side (Q3, Q4, P-channel):** these have **no control wire of their own**. Each P-MOSFET's
   gate sits on a divider between V+ (2 kΩ) and the **opposite** output (10 kΩ). That's why the
-  board only needs two wires. (Measured on Q3; Q4 is assumed to be the mirror image.)
+  board only needs two wires. Both sides are mirror images of each other.
 
 **How one wire turns on a whole current path**, with GP0 as the example:
 

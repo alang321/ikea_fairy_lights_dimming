@@ -30,7 +30,7 @@ Cross-coupled complementary MOSFET bridge:
 - **Low-side gate drive**: U1 pin → 1 kΩ (102) → gate, with 10 kΩ (103) gate-to-GND pull-down.
   - **U1 pin 5 → Q1** (pulls L2 low)
   - **U1 pin 8 → Q2** (pulls L1 low)
-- **High-side gate drive (cross-coupling)**: each P-gate has about 2 kΩ pull-up to V+ and 10 kΩ to the **opposite** output. Measured for Q3: 2 kΩ to V+, 10 kΩ to L2. Q4 assumed mirrored (2 kΩ to V+, 10 kΩ to L1).
+- **High-side gate drive (cross-coupling)**: each P-gate has about 2 kΩ pull-up to V+ and 10 kΩ to the **opposite** output. Measured for Q3: 2 kΩ to V+, 10 kΩ to L2. Q4 is the mirror image (2 kΩ to V+, 10 kΩ to L1), confirmed.
   - When Q1 pulls L2 low, Q3's gate gets divided to about V+ × 2/12 ≈ 4 V below V+, so Q3 turns on and L1 = V+. The current path is V+ → Q3 → L1 → strip → L2 → Q1 → GND.
   - **So one control line per polarity:** pin 5 drives "L1 high / L2 low", pin 8 drives "L2 high / L1 low".
 - **Idle/off state**: with both low sides off, both outputs float up to V+ through the ~12 kΩ gate networks, so the strip sees 0 V. On the scope "both outputs at V+" means off. This is normal.
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 4. **Reuse the buttons (optional)**: trace which old U1 pads connect to S1/S2 (button to GND when pressed). Check whether those pads carry a pull-up to 5 V before connecting; prefer the Pico's internal pull-ups and remove or avoid any 5 V pull-up.
 5. **Reuse the phototransistor (optional)**: trace PT1's circuit first. If it's referenced to 5 V, divide it down before the Pico ADC (max 3.3 V).
 6. **Standalone power**: run the Pico from the 24 V supply with a buck converter set to 5 V (or 3.3 V) into **VSYS** (pin 39), through a Schottky diode if USB may also be connected. Don't use the board's 78L05 (100 mA is too little for Wi-Fi peaks).
-7. **Optional checks**: measure the opposite changeover dead time; verify Q4's gate network mirrors Q3's; verify strip current; run the 10 kHz shoot-through current test without the strip.
+7. **Optional checks**: measure the opposite changeover dead time; verify strip current; run the 10 kHz shoot-through current test without the strip.
 
 ## Test equipment available
 - Rigol DS1054Z: probe grounds **only** on V-; 10× probes; trigger on the falling edge of the active output (outputs idle at V+); Math CH1−CH2 shows the voltage across the strip.
