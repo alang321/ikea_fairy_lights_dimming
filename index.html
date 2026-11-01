@@ -12,7 +12,7 @@
 <title>Light</title>
 <style>
   :root { --bg: #0b0b0d; --track: #1b1b20; --fg: #f3efe8; --dim: #77737c; --b: 0;
-    --lo: 255, 143, 51; --hi: 255, 180, 107; --glow: 255, 190, 110; }   /* set from JS by brightness */
+    --hi: 255, 198, 140; --glow: 255, 190, 110; }   /* set from JS by brightness */
   * { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
   html { background: var(--bg); }
   html, body { height: 100%; color: var(--fg); overscroll-behavior: none;
@@ -43,7 +43,7 @@
     background: var(--track); overflow: hidden; touch-action: none; cursor: ns-resize;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
   #fill { position: absolute; inset: 0; border-radius: inherit; clip-path: inset(100% 0 0 0);
-    background: linear-gradient(to top, rgb(var(--lo)), rgb(var(--hi))); }
+    background: rgb(var(--hi)); }
   body.anim #fill { transition: clip-path .4s cubic-bezier(.4, 0, .2, 1); }
   #bar.spring { transition: transform .6s cubic-bezier(.25, 1.7, .5, 1); }   /* overshoots a bit when let go */
   #btn { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--track); color: var(--dim);
@@ -85,8 +85,7 @@ function showNumber(n) {
 const mix = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(", ");
 function tint(t) {
   const r = document.documentElement.style;
-  r.setProperty("--lo", mix([255, 165, 90], [255, 214, 166], t));    // bottom of the fill
-  r.setProperty("--hi", mix([255, 198, 140], [255, 248, 238], t));   // top of the fill
+  r.setProperty("--hi", mix([255, 198, 140], [255, 248, 238], t));   // fill colour
   r.setProperty("--glow", mix([255, 184, 120], [255, 236, 210], t));
 }
 
