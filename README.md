@@ -175,17 +175,26 @@ The Pico's wires are soldered to U1's empty pads:
 | GP1 (pin 2) | old U1 pin 8 pad → Q2 (L2 high / L1 low) |
 | GND (pin 3) | V− |
 
-### Standalone power (instead of USB)
+### Power: one 24 V supply for everything
+
+The Pico runs from the strip's own 24 V supply, through a small buck converter with a fixed 3.3 V
+output into **VSYS**. No separate USB power is needed.
 
 ```
-24 V (V+) ──► buck 24→3.3 V ──►|── VSYS (pin 39)
-V− ─────────► buck GND ─────────── GND  (pin 38)
-                          Schottky diode (e.g. 1N5819), needed if USB may also be plugged in
+24 V (V+) ──► buck 24 → 3.3 V (fixed) ──► VSYS (pin 39)
+V− ─────────► buck GND ─────────────────── GND  (pin 38)
 ```
 
-- Use **VSYS**, not the 3V3 pin. VSYS accepts 1.8–5.5 V.
-- The buck converter must be rated for ≥ 28 V input (not the 23 V "Mini-360" type). Set it to 3.3 V before connecting.
-- Current budget at 24 V: strip at the 93 % cap ≈ 117 mA + Pico ≈ 20 mA (Wi-Fi spikes ~40 mA) ≈ 137 mA, under the 0.15 A supply.
+- **VSYS, not the 3V3 pin:** VSYS accepts 1.8–5.5 V and feeds the Pico's own regulator. The 3V3 pin
+  is that regulator's output.
+- **The buck must handle the input voltage:** rated for ≥ 28 V input (e.g. not the 23 V "Mini-360").
+- **USB at the same time** (for updates over the cable): put a Schottky diode (e.g. 1N5819) between
+  the buck and VSYS, so USB power can't flow back into the buck. Updates over Wi-Fi don't need USB at all.
+- **Power budget:** the supply is rated **0.15 A**. The strip alone draws about 137 mA at full
+  brightness (measured), and the Pico adds roughly 20 mA through the buck (short Wi-Fi spikes ~40 mA),
+  which would slightly exceed the rating. So the slider's 100 % is capped at 93 % (`MAX_LEVEL` in
+  `light.py`, about 85 % power): strip ≈ 117 mA + Pico ≈ 20 mA ≈ 137 mA in total, under the rating.
+  With the gamma curve, the cap is barely visible.
 
 ## Updating over Wi-Fi (normal way)
 
