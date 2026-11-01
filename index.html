@@ -149,13 +149,15 @@ function endDrag() {
 bar.addEventListener("pointerup", endDrag);
 bar.addEventListener("pointercancel", endDrag);
 
-// Scroll wheel / trackpad (laptops): about 5 % per mouse-wheel notch, smooth on trackpads.
+// Scroll wheel / trackpad (laptops): exactly 2 % per mouse-wheel notch (ignoring the browser's
+// scroll acceleration), proportional and smooth on trackpads.
 let wheelDone = 0;
 addEventListener("wheel", e => {
   if (e.ctrlKey) return;                                  // leave pinch / Ctrl+wheel zoom alone
   e.preventDefault();
-  const px = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);   // lines/pages -> pixels
-  level = clamp((on ? level : 0) - px / 2000);
+  const notch = e.deltaMode !== 0 || Math.abs(e.deltaY) >= 50;   // mouse wheel; trackpads send small deltas
+  const step = notch ? Math.sign(e.deltaY) * 0.02 : e.deltaY / 1500;
+  level = clamp((on ? level : 0) - step);
   on = level > 0;
   render(true);
   send({ b: level });
