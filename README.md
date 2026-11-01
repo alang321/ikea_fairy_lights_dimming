@@ -24,7 +24,96 @@ one big slider plus an on/off button.
 
 Laptop-only tools: `push.py` (updates over Wi-Fi) and `dev_server.py` (local preview of the page).
 
+## Hardware: how the original board is reused
+
+Full measurements are in [`led-controller-context.md`](led-controller-context.md); this is the short version.
+
+### The strip needs alternating polarity
+
+The strip has only two wires, and its LEDs are wired **anti-parallel**: half of them light up with
+current in one direction, the other half with current in the other direction. To light the whole
+strip, the voltage across it has to keep flipping polarity, so it needs an **H-bridge**, not
+just a switch.
+
+### The original controller board
+
+The IKEA controller board ("103305 Rev:02") already has that H-bridge. It's driven by a small
+10-pin microcontroller (U1, marked "D681"). U1 couldn't be identified and is almost certainly
+one-time-programmable, so it was **cut off the board**. The Pico W now drives the bridge through
+U1's empty pads. The rest of the board stays as it is: the supply input V+/V− with its
+reverse-polarity diode D2, the bridge, and the strip outputs L1/L2. Its other parts are unused
+for now: the 78L05 regulator that powered U1, the buttons S1/S2, the light sensor PT1 and the
+indicator LED.
+
+### The H-bridge: four MOSFETs, two control wires
+
+```
+                       V+ (24 V, after diode D2)
+          ┌───────────────────┴───────────────────┐
+     Q3 P-channel                            Q4 P-channel
+     gate: 2 kΩ to V+, 10 kΩ to L2           gate: 2 kΩ to V+, 10 kΩ to L1
+          │                                       │
+   L1 ────┼──────────────[ LED strip ]────────────┼──── L2
+          │                                       │
+     Q2 N-channel                            Q1 N-channel
+     gate: 1 kΩ from GP1, 10 kΩ to GND       gate: 1 kΩ from GP0, 10 kΩ to GND
+          └───────────────────┬───────────────────┘
+                          GND (V−)
+```
+
+- **Low side (Q1, Q2, N-channel):** each is switched directly by one control wire, through a 1 kΩ
+  resistor. A 10 kΩ pull-down keeps it off while nothing drives it, e.g. while the Pico boots.
+- **High side (Q3, Q4, P-channel):** these have **no control wire of their own**. Each P-MOSFET's
+  gate sits on a divider between V+ (2 kΩ) and the **opposite** output (10 kΩ). That's why the
+  board only needs two wires. (Measured on Q3; Q4 is assumed to be the mirror image.)
+
+**How one wire turns on a whole current path**, with GP0 as the example:
+
+1. GP0 goes high and Q1 switches on, pulling **L2 to ground**.
+2. Q3's gate is now on a divider between V+ and L2 = 0 V, so it sits about 4 V below V+
+   (24 V × 2 kΩ / 12 kΩ). That switches the P-MOSFET Q3 on, and **L1 goes to V+**.
+3. Current flows V+ → Q3 → L1 → strip → L2 → Q1 → GND, which lights one half of the LEDs.
+
+GP1 does the mirror image: Q2 pulls L1 low, Q4 switches on, L2 goes to V+, and current flows the
+other way through the strip, lighting the other half.
+
+**Off:** when neither wire is high, both outputs float up to V+ through the gate resistors.
+There's 0 V across the strip, so it's dark. On a scope, "both outputs at V+" is the normal off state.
+
+The Pico's 3.3 V through the 1 kΩ / 10 kΩ divider gives about 3.0 V at the gate, enough for these
+logic-level MOSFETs (AO3400-type N, AO3401 P).
+
+### The one dangerous state
+
+If **GP0 and GP1 are high at the same time**, both low sides pull both outputs to ground, and
+that turns both high sides on too. Then each leg conducts straight from V+ to GND
+(**shoot-through**), shorting the supply. The high side also switches off slowly (its gate
+recharges through the 2 kΩ pull-up), so there must be a **gap (dead time)** between one wire
+going low and the other going high. The original firmware used 22 µs; this one uses 30 µs.
+
+### How the Pico drives it
+
+A PIO state machine (`bridge.py`) alternates the two wires in hardware, independent of Python.
+It pulses GP0, waits, pulses GP1, waits, and repeats:
+
+```
+          ┌────┐                      ┌────┐
+GP0  ─────┘    └──────────────────────┘    └──────────────────
+                     ┌────┐                      ┌────┐
+GP1  ────────────────┘    └──────────────────────┘    └───────
+          |<-- 0.5 ms -->|
+          pulse width = brightness; the gap between pulses is always ≥ 30 µs
+```
+
+- 1 kHz polarity cycle (the original ran at 200 Hz), 0.1 µs resolution for the pulse width.
+- Overlap is impossible by construction: the program only ever sets one pin, and the maximum
+  pulse width is clamped so the gap can never get shorter than 30 µs.
+- Brightness goes through a gamma curve (2.2) so the slider feels even. Slider 1 % maps to the
+  shortest pulse that still visibly lights the strip, and 100 % is capped at 93 % for the power supply.
+
 ## Wiring
+
+The Pico's wires are soldered to U1's empty pads:
 
 | Pico W | Board |
 |---|---|
