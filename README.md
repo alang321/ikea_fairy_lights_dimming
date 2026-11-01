@@ -35,6 +35,33 @@ current in one direction, the other half with current in the other direction. To
 strip, the voltage across it has to keep flipping polarity, so it needs an **H-bridge**, not
 just a switch.
 
+```
+          A          B          A          B
+ L1 ──────┬──────────┬──────────┬──────────┬────── …
+          │          │          │          │
+         ─┴─        ─┴─        ─┴─        ─┴─
+         \ /        / \        \ /        / \
+         ─┬─        ─┬─        ─┬─        ─┬─
+          │          │          │          │
+ L2 ──────┴──────────┴──────────┴──────────┴────── …
+
+ A = LED pointing L1 → L2: lights when L1 is + (GP0 pulse: Q3 + Q1 on)
+ B = LED pointing L2 → L1: lights when L2 is + (GP1 pulse: Q4 + Q2 on)
+```
+
+| Phase | L1 | L2 | Lit |
+|---|---|---|---|
+| GP0 pulse | V+ | GND | A LEDs |
+| GP1 pulse | GND | V+ | B LEDs |
+| Gap / off | V+ (floating) | V+ (floating) | none |
+
+The bridge alternates A and B 1000 times a second, so to the eye the whole strip glows evenly.
+Both halves always get the same pulse width, so they're always equally bright.
+
+This shows the typical layout of two-wire light strings, with every other LED facing the other
+way. What's known for certain is that half the LEDs light per polarity. The exact arrangement
+inside the strip (e.g. single LEDs or small series groups between the wires) wasn't measured.
+
 ### The original controller board
 
 The IKEA controller board ("103305 Rev:02") already has that H-bridge. It's driven by a small
